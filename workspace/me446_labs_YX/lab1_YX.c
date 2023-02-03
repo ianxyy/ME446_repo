@@ -34,6 +34,14 @@ float printtheta1motor = 0;
 float printtheta2motor = 0;
 float printtheta3motor = 0;
 
+float x = 0;
+float y = 0;
+float z = 0;
+float pi = PI;
+float L1 = 0.254;
+float L2 = 0.254;
+float L3 = 0.254;
+
 // Assign these float to the values you would like to plot in Simulink
 float Simulink_PlotVar1 = 0;
 float Simulink_PlotVar2 = 0;
@@ -45,9 +53,9 @@ float Simulink_PlotVar4 = 0;
 void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float *tau2,float *tau3, int error) {
 
 
-    *tau1 = 0;
-    *tau2 = 0;
-    *tau3 = -1;
+//    *tau1 = 0;
+//    *tau2 = 0;
+//    *tau3 = -1;
 
     //Motor torque limitation(Max: 5 Min: -5)
 
@@ -75,6 +83,10 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     printtheta2motor = theta2motor;
     printtheta3motor = theta3motor;
 
+    x = cos(theta1motor)*(L2*cos(pi/2 - theta2motor) + L3*cos(theta3motor));
+    y = sin(theta1motor)*(L2*cos(pi/2 - theta2motor) + L3*cos(theta3motor));
+    z = L1 + L2*sin(pi/2 - theta2motor) - L3*sin(theta3motor);
+
     Simulink_PlotVar1 = theta1motor;
     Simulink_PlotVar2 = theta2motor;
     Simulink_PlotVar3 = theta3motor;
@@ -84,6 +96,6 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 }
 
 void printing(void){
-    serial_printf(&SerialA, "%.2f %.2f, %.2f, %.2f   \n\r",printtheta1motor*180/PI,printtheta2motor*180/PI,printtheta3motor*180/PI, print2);
+    serial_printf(&SerialA, "%.2f %.2f, %.2f,    %.2f, %.2f, %.2f   \n\r",printtheta1motor*180/PI,printtheta2motor*180/PI,printtheta3motor*180/PI,     x, y, z);
 }
 
