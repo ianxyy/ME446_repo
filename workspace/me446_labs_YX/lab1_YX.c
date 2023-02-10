@@ -42,6 +42,25 @@ float L1 = 0.254;
 float L2 = 0.254;
 float L3 = 0.254;
 
+float invk_th1_dh = 0;
+float invk_th2_dh = 0;
+float invk_th3_dh = 0;
+float invk_th2_dh_down = 0;
+float invk_th3_dh_down = 0;
+float invk_th1_m = 0;
+float invk_th2_m = 0;
+float invk_th3_m = 0;
+float invk_th2_m_down = 0;
+float invk_th3_m_down = 0;
+float invk_th1_m_over = 0;
+float invk_th2_m_over = 0;
+float invk_th3_m_over = 0;
+float invk_th1_m_over_down = 0;
+float invk_th2_m_over_down = 0;
+float invk_th3_m_over_down = 0;
+
+
+
 // Assign these float to the values you would like to plot in Simulink
 float Simulink_PlotVar1 = 0;
 float Simulink_PlotVar2 = 0;
@@ -83,9 +102,38 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     printtheta2motor = theta2motor;
     printtheta3motor = theta3motor;
 
+    //Forward Kinematics Formulas
     x = cos(theta1motor)*(L2*cos(pi/2 - theta2motor) + L3*cos(theta3motor));
     y = sin(theta1motor)*(L2*cos(pi/2 - theta2motor) + L3*cos(theta3motor));
     z = L1 + L2*sin(pi/2 - theta2motor) - L3*sin(theta3motor);
+
+
+//    invk_th1_dh = atan2(y, x);
+//    invk_th3_dh = asin((L2*L2 + L3*L3 - x*x - y*y - (z - L1)*(z - L1)) / (2*L2*L3));
+//    invk_th2_dh = -asin(L3*cos(invk_th3_dh) / sqrt(x*x + y*y + (z - L1)*(z - L1))) - atan2(z-L1, sqrt(x*x + y*y));
+
+
+    invk_th1_dh = atan2(y, x);
+    invk_th3_dh = acos(((z-L1)*(z-L1) + x*x + y*y - 2*L1*L1) / (2*L1*L1));
+    invk_th2_dh = -atan2(z-L1, sqrt(x*x + y*y)) - invk_th3_dh/2;
+    invk_th3_dh_down = -invk_th3_dh;
+    invk_th2_dh_down = -atan2(z-L1, sqrt(x*x + y*y)) - invk_th3_dh_down/2;
+
+    invk_th1_m = invk_th1_dh;
+    invk_th2_m = invk_th2_dh + pi/2;
+    invk_th3_m = invk_th3_dh + invk_th2_m - pi/2;
+    invk_th2_m_down = invk_th2_dh_down + pi/2;
+    invk_th3_m_down = invk_th3_dh_down + invk_th2_m_down - pi/2;
+
+
+    invk_th1_m_over = fmod(invk_th1_m - pi, 2*pi);
+    invk_th2_m_over = -invk_th2_m_down;
+    invk_th3_m_over = -pi/2 - invk_th2_m;
+
+    invk_th1_m_over_down = fmod(invk_th1_m - pi, 2*pi);
+    invk_th2_m_over_down = -invk_th2_m;
+    invk_th3_m_over_down = -pi - invk_th2_m + pi/2 - (invk_th2_m_over_down-invk_th2_m_over);
+
 
     Simulink_PlotVar1 = theta1motor;
     Simulink_PlotVar2 = theta2motor;
@@ -96,6 +144,6 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 }
 
 void printing(void){
-    serial_printf(&SerialA, "%.2f %.2f, %.2f,    %.2f, %.2f, %.2f   \n\r",printtheta1motor*180/PI,printtheta2motor*180/PI,printtheta3motor*180/PI,     x, y, z);
+    serial_printf(&SerialA, "(%.2f %.2f, %.2f)  (%.2f, %.2f, %.2f)  (%.2f, %.2f, %.2f)  (%.2f, %.2f, %.2f)  (%.2f, %.2f, %.2f)\n\r",printtheta1motor*180/PI,printtheta2motor*180/PI,printtheta3motor*180/PI,  invk_th1_m*180/PI, invk_th2_m*180/PI, invk_th3_m*180/PI,    invk_th1_m*180/PI, invk_th2_m_down*180/PI, invk_th3_m_down*180/PI,   invk_th1_m_over*180/PI, invk_th2_m_over*180/PI, invk_th3_m_over*180/PI,    invk_th1_m_over_down*180/PI, invk_th2_m_over_down*180/PI, invk_th3_m_over_down*180/PI);
 }
 
