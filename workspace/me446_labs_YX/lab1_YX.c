@@ -144,6 +144,51 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 }
 
 void printing(void){
-    serial_printf(&SerialA, "(%.2f %.2f, %.2f)  (%.2f, %.2f, %.2f)  (%.2f, %.2f, %.2f)  (%.2f, %.2f, %.2f)  (%.2f, %.2f, %.2f)\n\r",printtheta1motor*180/PI,printtheta2motor*180/PI,printtheta3motor*180/PI,  invk_th1_m*180/PI, invk_th2_m*180/PI, invk_th3_m*180/PI,    invk_th1_m*180/PI, invk_th2_m_down*180/PI, invk_th3_m_down*180/PI,   invk_th1_m_over*180/PI, invk_th2_m_over*180/PI, invk_th3_m_over*180/PI,    invk_th1_m_over_down*180/PI, invk_th2_m_over_down*180/PI, invk_th3_m_over_down*180/PI);
+
+    float th1_m = 0;
+    float th2_m = 0;
+    float th3_m = 0;
+    float th1_dh = th1_m;
+    float th2_dh = th2_m - pi/2;
+    float th3_dh = -th2_m + th3_m + pi/2;
+
+    //int config = 0;
+
+    //elbow up
+    if(th3_dh > 0){
+
+        //if(th3_dh > 0){
+         //   th1_m = invk_th1_m_over;
+         //   th2_m = invk_th2_m_over;
+         //   th3_m = invk_th3_m_over;
+           // config = 4;
+       // }else{
+
+        th1_m = invk_th1_m;
+        th2_m = invk_th2_m;
+        th3_m = invk_th3_m;
+        //config = 1;
+
+    }else{
+
+      // if(th3_dh < 0){
+        //th1_m = invk_th1_m_over_down;
+        //th2_m = invk_th2_m_over_down;
+        //th3_m = invk_th3_m_over_down;
+           // config = 2;
+       // }else{
+
+        th1_m = invk_th1_m;
+        th2_m = invk_th2_m_down;
+        th3_m = invk_th3_m_down;
+        //config = 3;
+
+    }
+
+    //th1_m = fmod(th1_m + pi, 2*pi) - pi;
+    //th2_m = fmod(th2_m + pi, 2*pi) - pi;
+    //th3_m = fmod(th3_m + pi, 2*pi) - pi;
+
+    serial_printf(&SerialA, "(%.2f %.2f, %.2f)    (%.2f %.2f, %.2f)     (%.2f, %.2f, %.2f)   \n\r",printtheta1motor*180/PI,printtheta2motor*180/PI,printtheta3motor*180/PI,     x, y, z ,       th1_m*180/PI,th2_m*180/PI,th3_m*180/PI);
 }
 
