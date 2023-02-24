@@ -52,6 +52,7 @@ float invk_th3_m = 0;
 float th1_des = 0;
 float th1_end = 0.52;
 float error1 = 0;
+float error1old = 0;
 float Theta1_old = 0;
 float Omega1_old1 = 0;
 float Omega1_old2 = 0;
@@ -65,6 +66,7 @@ float ki1 = 0;
 float th2_des = 0;
 float th2_end = 0.52;
 float error2 = 0;
+float error2old = 0;
 float Theta2_old = 0;
 float Omega2_old1 = 0;
 float Omega2_old2 = 0;
@@ -79,6 +81,7 @@ float ki2 = 0;
 float th3_des = 0;
 float th3_end = -0.52;
 float error3 = 0;
+float error3old = 0;
 float Theta3_old = 0;
 float Omega3_old1 = 0;
 float Omega3_old2 = 0;
@@ -162,22 +165,26 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     if(fabs(*tau1) > 5 ||  fabs(error1) > errorBound){
         Ik1 = 0;
     } else {
-        Ik1 += error1 * 0.001;
+        Ik1 += (error1 + error1old)/2.0 * 0.001;
     }
     if(fabs(*tau2) > 5 ||  fabs(error2) > errorBound){
         Ik2 = 0;
     }  else {
-        Ik2 += error2 * 0.001;
+        Ik2 += (error2 + error2old)/2.0 * 0.001;
     }
     if(fabs(*tau3) > 5 ||   fabs(error3) > errorBound){
         Ik3 = 0;
     }  else {
-        Ik3 += error3 * 0.001;
+        Ik3 += (error3 + error3old)/2.0 * 0.001;
     }
 
     *tau1 += ki1*Ik1;
     *tau2 += ki2*Ik2;
     *tau3 += ki3*Ik3;
+
+    error1old = error1;
+    error2old = error2;
+    error3old = error3;
 
 
 
