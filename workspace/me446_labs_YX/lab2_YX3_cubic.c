@@ -10,6 +10,8 @@
 float offset_Enc2_rad = -22.95*PI/180.0;
 float offset_Enc3_rad = 12.85*PI/180.0;
 
+void cubic(float t, float *th1, float *th1d, float *th1dd);
+
 
 // Your global varialbes.
 
@@ -42,6 +44,10 @@ float L1 = 0.254;
 float L2 = 0.254;
 float L3 = 0.254;
 
+float J1 = 0.0167;
+float J2 = 0.03;
+float J3 = 0.0128;
+
 float invk_th1_dh = 0;
 float invk_th2_dh = 0;
 float invk_th3_dh = 0;
@@ -50,8 +56,10 @@ float invk_th2_m = 0;
 float invk_th3_m = 0;
 
 float th1_des = 0;
-float th1_end = 0.52;
+float th1d_des = 0;
+float th1dd_des = 0;
 float error1 = 0;
+float error1d = 0;
 float error1old = 0;
 float Theta1_old = 0;
 float Omega1_old1 = 0;
@@ -61,26 +69,32 @@ float Kp1 = 50;
 float Kd1 = 2;
 float tau1print = 0;
 float Ik1 = 0;
-float ki1 = 0;
+float ki1 = 400;
+
+float t = 0;
 
 float th2_des = 0;
-float th2_end = 0.52;
+float th2d_des = 0;
+float th2dd_des = 0;
 float error2 = 0;
+float error2d = 0;
 float error2old = 0;
 float Theta2_old = 0;
 float Omega2_old1 = 0;
 float Omega2_old2 = 0;
 float Omega2 = 0;
 float Kp2 = 50;
-float Kd2 = 2;
+float Kd2 = 2.2;
 float tau2print = 0;
 float Ik2 = 0;
-float ki2 = 0;
+float ki2 = 450;
 
 
 float th3_des = 0;
-float th3_end = -0.52;
+float th3d_des = 0;
+float th3dd_des = 0;
 float error3 = 0;
+float error3d = 0;
 float error3old = 0;
 float Theta3_old = 0;
 float Omega3_old1 = 0;
@@ -90,7 +104,7 @@ float Kp3 = 50;
 float Kd3 = 2;
 float tau3print = 0;
 float Ik3 = 0;
-float ki3 = 0;
+float ki3 = 400;
 
 float errorBound = .05;
 
@@ -118,29 +132,25 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     invk_th2_m = invk_th2_dh + pi/2;
     invk_th3_m = invk_th3_dh + invk_th2_m - pi/2;
 
-    //square wave between 0 and pi/6
-    if(mycount % 3000 == 0){
-        if(th2_des < 0.1){
-            th2_des = th2_end;
-        }else{
-            th2_des = 0;
-        }
-        if(th3_des > -0.1){
-            th3_des = th3_end;
-        }else{
-            th3_des = 0;
-        }
-    }
-
 
     //calculate cubic trajectory
-    cubic(t)
-
+    t = (mycount%3000) / 1000.0;
+    float th_cubic = 0;
+    float thd_cubic = 0;
+    float thdd_cubic = 0;
+    cubic(t, &th_cubic, &thd_cubic, &thdd_cubic);
+    th1_des = th_cubic;
+    th2_des = th_cubic;
+    th3_des = th_cubic;
+    th1d_des = thd_cubic;
+    th2d_des = thd_cubic;
+    th3d_des = thd_cubic;
+    th1dd_des = thdd_cubic;
+    th2dd_des = thdd_cubic;
+    th3dd_des = thdd_cubic;
 
     //calc states
-    error1 = th2_des - theta1motor;
-    error2 = th2_des - theta2motor;
-    error3 = th2_des - theta3motor;
+
     //get th2dot from IIR filter
     Omega1 = (theta1motor - Theta1_old)/0.001;
     Omega1 = (Omega1 + Omega1_old1 + Omega1_old2)/3.0;
@@ -160,11 +170,20 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     Omega3_old2 = Omega3_old1;
     Omega3_old1 = Omega3;
 
+    error1 = th1_des - theta1motor;
+    error1d = th1d_des - Omega1;
+    error2 = th2_des - theta2motor;
+    error2d = th2d_des - Omega2;
+    error3 = th3_des - theta3motor;
+    error3d = th3d_des - Omega3;
+
 
     //PID
-    *tau1 = Kp1*error1 - Kd1*Omega1;
-    *tau2 = Kp2*error2 - Kd2*Omega2;
-    *tau3 = Kp3*error3 - Kd3*Omega3;
+    *tau1 = J1*th1dd_des + Kp1*error1 + Kd1*error1d;
+    *tau2 = J2*th2dd_des + Kp2*error2 + Kd2*error2d;
+    *tau3 = J3*th3dd_des + Kp3*error3 + Kd3*error3d;
+//    *tau2 = Kp2*error2 - Kd2*Omega2;
+//    *tau3 = Kp3*error3 - Kd3*Omega3;
 
     //saturating torques
     if(fabs(*tau1) > 5 ||  fabs(error1) > errorBound){
@@ -226,8 +245,12 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     mycount++;
 }
 
-void cubic(t, *th1, *th1d, *th1dd){
-   if(t < 1){
+void cubic(float t, float *th1, float *th1d, float *th1dd){
+   float a0 = 0;
+   float a1 = 0;
+   float a2 = 0;
+   float a3 = 0;
+    if(t < 1){
        a0=0;
        a1=0;
        a2=1.5;
@@ -238,8 +261,8 @@ void cubic(t, *th1, *th1d, *th1dd){
        a2=-4.5;
        a3=1;
    }
-   *th1 = a0 + a1*t + a2*t^2 + a3*t^3;
-   *th1d = a1 + 2*a2*t + 3*a3*t^2;
+   *th1 = a0 + a1*t + a2*t*t + a3*t*t*t;
+   *th1d = a1 + 2*a2*t + 3*a3*t*t;
    *th1dd = 2*a2 + 6*a3;
    if(t < 0 || t > 2){
        *th1 = 0;
@@ -251,21 +274,21 @@ void cubic(t, *th1, *th1d, *th1dd){
 void printing(void){
 
 
-    float th1_m = 0;
-    float th2_m = 0;
-    float th3_m = 0;
-    float th1_dh = th1_m;
-    float th2_dh = th2_m - pi/2;
-    float th3_dh = -th2_m + th3_m + pi/2;
+//    float th1_m = 0;
+//    float th2_m = 0;
+//    float th3_m = 0;
+//    float th1_dh = th1_m;
+//    float th2_dh = th2_m - pi/2;
+//    float th3_dh = -th2_m + th3_m + pi/2;
 
-    th1_m = invk_th1_m;
-    th2_m = invk_th2_m;
-    th3_m = invk_th3_m;
+//    th1_m = invk_th1_m;
+//    th2_m = invk_th2_m;
+//    th3_m = invk_th3_m;
 
     //th1_m = fmod(th1_m + pi, 2*pi) - pi;
     //th2_m = fmod(th2_m + pi, 2*pi) - pi;
     //th3_m = fmod(th3_m + pi, 2*pi) - pi;
 
-    serial_printf(&SerialA, "(%.2f %.2f, %.2f)    (%.2f %.2f, %.2f)   (%.2f, %.2f, %.2f)  (%.2f, %.2f, %.2f)\n\r",printtheta1motor,printtheta2motor,printtheta3motor, th1_des,th2_des,th3_des, error1,error2,error3,  tau1print,tau2print,tau3print);
+    serial_printf(&SerialA, "%.2f (%.2f %.2f, %.2f)    (%.2f %.2f, %.2f)   (%.2f, %.2f, %.2f)  (%.2f, %.2f, %.2f)\n\r", t, printtheta1motor,printtheta2motor,printtheta3motor, th1_des,th2_des,th3_des, error1,error2,error3,  tau1print,tau2print,tau3print);
 }
 
