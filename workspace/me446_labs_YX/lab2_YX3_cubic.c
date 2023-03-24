@@ -83,8 +83,8 @@ float Theta2_old = 0;
 float Omega2_old1 = 0;
 float Omega2_old2 = 0;
 float Omega2 = 0;
-float Kp2 = 50;
-float Kd2 = 2.2;
+float Kp2 = 2000;
+float Kd2 = 100;
 float tau2print = 0;
 float Ik2 = 0;
 float ki2 = 450;
@@ -100,8 +100,8 @@ float Theta3_old = 0;
 float Omega3_old1 = 0;
 float Omega3_old2 = 0;
 float Omega3 = 0;
-float Kp3 = 50;
-float Kd3 = 2;
+float Kp3 = 3000;
+float Kd3 = 60;
 float tau3print = 0;
 float Ik3 = 0;
 float ki3 = 400;
@@ -118,16 +118,23 @@ float coulombN1 = -0.2948;
 float minV2 = 0.05;
 float steep2 = 9.;
 float viscousP2 = 0.2;
-float coulombP2 = 0.4;
+float coulombP2 = 0.2;
 float viscousN2 = 0.2;
 float coulombN2 = -0.4;
 
 float minV3 = 0.05;
-float steep3 = 4;
+float steep3 = 2;
 float viscousP3 = 0.05;
 float coulombP3 = 0.3;
 float viscousN3 = 0.05;
-float coulombN3 = -0.5;
+float coulombN3 = -0.3;
+
+//used to calculate DCG matrices
+float p1 = 0.0300;
+float p2 = 0.0128;
+float p3 = 0.0076;
+float p4 = 0.0753;
+float p5 = 0.0298;
 
 
 // Assign these float to the values you would like to plot in Simulink
@@ -198,14 +205,27 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     error3 = th3_des - theta3motor;
     error3d = th3d_des - Omega3;
 
+    //calculate desired accelerations a
+    float ath2 = th2dd_des + Kp2*(error2) + Kd2*(error2d);
+    float ath3 = th3dd_des + Kp3*(error3) + Kd3*(error3d);
+
+    //calculate DCG matrices
+    float sin32 = sin(theta3motor - theta2motor);
+    float cos32 = cos(theta3motor - theta2motor);
+
+    float innerD2 = p1*ath2 - p3*sin32*ath3;
+    float innerD3 = -p3*ath2*sin32 + p2*ath3;
+    float innerC2 = -Omega3*p3*cos32*Omega3;
+    float innerC3 = Omega2*p3*cos32*Omega2;
+    float innerG2 = -p4*GRAV*sin(theta2motor);
+    float innerG3 = -p5*GRAV*cos(theta3motor);
 
     //PID
-//    *tau1 = J1*th1dd_des + Kp1*error1 + Kd1*error1d;
+    *tau1 = J1*th1dd_des + Kp1*error1 + Kd1*error1d;
 //    *tau2 = J2*th2dd_des + Kp2*error2 + Kd2*error2d;
 //    *tau3 = J3*th3dd_des + Kp3*error3 + Kd3*error3d;
-
-//    *tau2 = Kp2*error2 - Kd2*Omega2;
-//    *tau3 = Kp3*error3 - Kd3*Omega3;
+     *tau2 = innerD2 + innerC2 + innerG2;
+     *tau3 = innerD3 + innerC3 + innerG3;
 
     //saturating torques
     if(fabs(*tau1) > 5 ||  fabs(error1) > errorBound){
@@ -283,7 +303,7 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
    Simulink_PlotVar1 = theta1motor;
    Simulink_PlotVar2 = theta2motor;
    Simulink_PlotVar3 = theta3motor;
-   Simulink_PlotVar4 = th2_des;
+   Simulink_PlotVar4 = th1_des;
 
    //LED
    if ((mycount%500)==0) {
