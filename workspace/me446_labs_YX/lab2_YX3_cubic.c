@@ -108,6 +108,27 @@ float ki3 = 400;
 
 float errorBound = .05;
 
+float minV1 = 0.1;
+float steep1 = 3.6;
+float viscousP1 = 0.1;
+float coulombP1 = 0.3637;
+float viscousN1 = 0.1;
+float coulombN1 = -0.2948;
+
+float minV2 = 0.05;
+float steep2 = 9.;
+float viscousP2 = 0.2;
+float coulombP2 = 0.4;
+float viscousN2 = 0.2;
+float coulombN2 = -0.4;
+
+float minV3 = 0.05;
+float steep3 = 4;
+float viscousP3 = 0.05;
+float coulombP3 = 0.3;
+float viscousN3 = 0.05;
+float coulombN3 = -0.5;
+
 
 // Assign these float to the values you would like to plot in Simulink
 float Simulink_PlotVar1 = 0;
@@ -179,9 +200,10 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
     //PID
-    *tau1 = J1*th1dd_des + Kp1*error1 + Kd1*error1d;
-    *tau2 = J2*th2dd_des + Kp2*error2 + Kd2*error2d;
-    *tau3 = J3*th3dd_des + Kp3*error3 + Kd3*error3d;
+//    *tau1 = J1*th1dd_des + Kp1*error1 + Kd1*error1d;
+//    *tau2 = J2*th2dd_des + Kp2*error2 + Kd2*error2d;
+//    *tau3 = J3*th3dd_des + Kp3*error3 + Kd3*error3d;
+
 //    *tau2 = Kp2*error2 - Kd2*Omega2;
 //    *tau3 = Kp3*error3 - Kd3*Omega3;
 
@@ -202,9 +224,38 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
         Ik3 += (error3 + error3old)/2.0 * 0.001;
     }
 
-    *tau1 += ki1*Ik1;
-    *tau2 += ki2*Ik2;
-    *tau3 += ki3*Ik3;
+//    *tau1 += ki1*Ik1;
+//    *tau2 += ki2*Ik2;
+//    *tau3 += ki3*Ik3;
+
+    //friction compensation
+    float u_fric1;
+    float u_fric2;
+    float u_fric3;
+    if (Omega1 > minV1) {
+        u_fric1 = viscousP1*Omega1 + coulombP1;
+    } else if (Omega1 < -minV1) {
+        u_fric1 = viscousN1*Omega1 + coulombN1;
+    } else {
+        u_fric1 = steep1*Omega1;
+    }
+    if (Omega2 > minV2) {
+            u_fric2 = viscousP2*Omega2 + coulombP2;
+        } else if (Omega2 < -minV2) {
+            u_fric2 = viscousN2*Omega2 + coulombN2;
+        } else {
+            u_fric2 = steep2*Omega2;
+        }
+    if (Omega3 > minV3) {
+            u_fric3 = viscousP3*Omega3 + coulombP3;
+        } else if (Omega3 < -minV3) {
+            u_fric3 = viscousN3*Omega3 + coulombN3;
+        } else {
+            u_fric3 = steep3*Omega3;
+        }
+    *tau1 += u_fric1;
+    *tau2 += u_fric2;
+    *tau3 += u_fric3;
 
     error1old = error1;
     error2old = error2;
