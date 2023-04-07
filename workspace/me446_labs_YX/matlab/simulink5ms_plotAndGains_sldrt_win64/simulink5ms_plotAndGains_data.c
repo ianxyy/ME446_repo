@@ -8,7 +8,7 @@
  *
  * Model version              : 9.1
  * Simulink Coder version : 9.7 (R2022a) 13-Nov-2021
- * C source code generated on : Fri Jan 27 14:02:09 2023
+ * C source code generated on : Fri Apr  7 13:01:45 2023
  *
  * Target selection: sldrt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping
@@ -88,6 +88,16 @@ P_simulink5ms_plotAndGains_T simulink5ms_plotAndGains_P = {
 
   /* Expression: 1
    * Referenced by: '<Root>/plot4'
+   */
+  1.0,
+
+  /* Expression: 1
+   * Referenced by: '<Root>/error2'
+   */
+  1.0,
+
+  /* Expression: 1
+   * Referenced by: '<Root>/error3'
    */
   1.0,
 

@@ -85,6 +85,7 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry excluding="matlab|28335_RAM_lnk.cmd" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="matlab/simulink5ms_plotAndGains_sldrt_win64/tlc"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -171,7 +172,8 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="lab2_YX3_cubic.c|lab2_YX3_fun.c|lab2_YX2.c|lab1_YX.c|matlab|F28335.cmd" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="lab2_YX3_filter.c|lab2_YX3_cubic.c|lab2_YX3_fun.c|lab2_YX2.c|lab1_YX.c|matlab|F28335.cmd" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="matlab/simulink5ms_plotAndGains_sldrt_win64/tlc"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

@@ -8,7 +8,7 @@
  *
  * Model version              : 9.1
  * Simulink Coder version : 9.7 (R2022a) 13-Nov-2021
- * C source code generated on : Fri Jan 27 14:02:09 2023
+ * C source code generated on : Fri Apr  7 13:01:45 2023
  *
  * Target selection: sldrt.tlc
  * Note: GRT includes extra infrastructure and instrumentation for prototyping
@@ -853,6 +853,8 @@ typedef struct {
   real_T plot2;                        /* '<Root>/plot2' */
   real_T plot3;                        /* '<Root>/plot3' */
   real_T plot4;                        /* '<Root>/plot4' */
+  real_T error2;                       /* '<Root>/error2' */
+  real_T error3;                       /* '<Root>/error3' */
   int32_T PacketInput1_o1[4];          /* '<S1>/Packet Input1' */
   int32_T PacketInput1_o2;             /* '<S1>/Packet Input1' */
   int16_T Gain1;                       /* '<S2>/Gain1' */
@@ -867,6 +869,14 @@ typedef struct {
 /* Block states (default storage) for system '<Root>' */
 typedef struct {
   void *PacketInput1_PWORK;            /* '<S1>/Packet Input1' */
+  struct {
+    void *AQHandles;
+  } TAQSigLogging_InsertedFor_error2_at_outport_0_PWORK;/* synthesized block */
+
+  struct {
+    void *AQHandles;
+  } TAQSigLogging_InsertedFor_error3_at_outport_0_PWORK;/* synthesized block */
+
   struct {
     void *AQHandles;
   } TAQSigLogging_InsertedFor_plot1_at_outport_0_PWORK;/* synthesized block */
@@ -892,6 +902,8 @@ typedef struct {
   real_T Out2;                         /* '<Root>/Out2' */
   real_T Out3;                         /* '<Root>/Out3' */
   real_T Out4;                         /* '<Root>/Out4' */
+  real_T Out5;                         /* '<Root>/Out5' */
+  real_T Out6;                         /* '<Root>/Out6' */
 } ExtY_simulink5ms_plotAndGains_T;
 
 /* Backward compatible GRT Identifiers */
@@ -951,6 +963,12 @@ struct P_simulink5ms_plotAndGains_T_ {
                                         */
   real_T plot4_Gain;                   /* Expression: 1
                                         * Referenced by: '<Root>/plot4'
+                                        */
+  real_T error2_Gain;                  /* Expression: 1
+                                        * Referenced by: '<Root>/error2'
+                                        */
+  real_T error3_Gain;                  /* Expression: 1
+                                        * Referenced by: '<Root>/error3'
                                         */
   real_T Value_16bit2_Value;           /* Expression: 1
                                         * Referenced by: '<Root>/Value_16bit2'
