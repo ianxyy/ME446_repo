@@ -5,7 +5,7 @@
 #define TWOPI       6.283185307179586476925286766559
 #define HALFPI      1.5707963267948966192313216916398
 #define GRAV        9.81
-#define NUMPOINTS 9
+#define NUMPOINTS 18
 
 // These two offsets are only used in the main file user_CRSRobot.c  You just need to create them here and find the correct offset and then these offset will adjust the encoder readings
 float offset_Enc2_rad = -22.95*PI/180.0;
@@ -18,21 +18,29 @@ typedef struct point_tag {
     float yb;
     float zb;
     float thetaz;
-    int mode; //mode 0, stiff in all directions, mode 1 stiff only in z
+    int mode; //mode 0, stiff in all directions, mode 1 stiff only in z, mode 2 = apply force
+    int time;
 } point;
 
 point waypoints[NUMPOINTS] = {
-                              {.15, 0, .43, 0, 0},
-                              {.25, 0, .51, 0, 0}, //first point
-                              {.04, .37, .25, 0, 0}, //slightly above hole
-                              {.03, .35, .16, 0, 1}, //inside hole
-                              {.03, .35, .4, 0, 1}, //raise outside hole
-                              {.19, .12, .36, 0, 0}, //avoid obstacle
-                              {.29, .10, .20, 0, 0}, //get to zigzag entrance
-                              {.32, .05, .20, 0, 2}, //first zigzag point loose in x & y
-                              {.23, .04, .20, 0, 2}, //second zigzag point
-                              {.28, -.03, .19, 0, 2} //exit zigzag
-
+                              {.15, 0, .43, 0, 0, 500},
+                              {.25, 0, .51, 0, 0, 500}, //first point
+                              {.04, .37, .25, 0, 0, 500}, //slightly above hole
+                              {.03, .35, .13, 0, 1, 500}, //inside hole
+                              {.03, .35, .13, 0, 1, 500},
+                              {.03, .35, .4, 0, 1, 500}, //raise outside hole
+                              {.19, .12, .36, 0, 0, 500}, //avoid obstacle
+                              {.399, .090, .207, 0, 1, 350},//zigzag entrance
+                              {.425, .036, .207,0, 1, 350},//first zigzag turn
+                              {.404, .030, .207,0, 1, 350},
+                              {.338, .037, .207,0, 1, 350}, //second zigzag turn
+                              {.330, .017, .207,0, 1, 750},
+                              {.406, -.090, .207,0, 1, 500}, //zigzag exit
+                              {.323, -.037, .438, 0, 0, 1000},
+                              {.252, .179, .322, 0, 2, 1000}, //above egg
+                              {.252, .179, .322, 0, 2, 5000},
+                              {.252, .179, .322, 0, 0, 500},
+                              {.254, 0, .508, 0 ,0, 500} //end point
 
 };
 
@@ -154,7 +162,7 @@ float viscousN3 = 0.05;
 float coulombN3 = -0.3;
 
 float ffactor1 = 1;
-float ffactor2 = 0.6;
+float ffactor2 = 1;
 float ffactor3 = 1;
 
 float Theta1_old = 0;
@@ -266,6 +274,11 @@ float Fx_des = 0;
 float Fy_des = 0;
 float Fz_des = 0;
 
+/**
+float Kp_z_input = 0;
+float Kd_z_input = 0;
+float Fz_des_input = 0;
+*/
 float Fx_n = 0;
 float Fy_n = 0;
 float Fz_n = 0;
@@ -276,7 +289,7 @@ float Fz_w = 0;
 float K_t = 6.0;
 
 
-long total_time = 3000;
+long total_time = 1500;
 float progress = 0;
 
 float x_des1 = 0;
@@ -287,6 +300,8 @@ float y_des2 = 0.0;
 float z_des2 = 0.3;
 
 int targetWayPoint = 0;
+
+float speed_scale = .75;
 
 // This function is called every 1 ms
 void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float *tau2,float *tau3, int error) {
@@ -366,6 +381,10 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
     //straight line
+    total_time = waypoints[targetWayPoint].time;
+
+    total_time = total_time * speed_scale;
+
     progress = (float)(mycount % (total_time)) / (float)total_time;
 
     //rboot starting point
@@ -382,13 +401,37 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
         targetWayPoint += 1;
     }
 
-    if (targetWayPoint > NUMPOINTS) {
+    if (targetWayPoint >= NUMPOINTS) {
         //targetWayPoint = NUMPOINTS-1;
         //once all waypoints are reached
         x_des = .254;
         y_des = 0;
         z_des = .508;
     } else {
+        if (targetWayPoint == NUMPOINTS - 1) {
+            x_des2 =   .254;
+            y_des2 = 0;
+            z_des2 = .508;
+        }
+
+        if (waypoints[targetWayPoint].mode == 2) {
+            Fz_des = 0;
+            Kp_z = 38;
+            Kd_z = 25;
+        } else if (waypoints[targetWayPoint].mode == 1) {
+            Kp_x = 150;
+            Kp_y = 150;
+            Kd_x = 15;
+            Kd_y = 15;
+        } else{
+            Fz_des = 0;
+            Kp_z = 500;
+            Kd_z = 25;
+            Kp_x = 500;
+            Kp_y = 500;
+            Kd_x = 25;
+            Kd_y = 25;
+        }
         x_des = x_des1 + progress * (x_des2 - x_des1);
         y_des = y_des1 + progress * (y_des2 - y_des1);
         z_des = z_des1 + progress * (z_des2 - z_des1);
@@ -523,7 +566,7 @@ void printing(void){
     th2_m = fmod(th2_m + pi, 2*pi) - pi;
     th3_m = fmod(th3_m + pi, 2*pi) - pi;
 
-    serial_printf(&SerialA, "%.2f (%.2f %.2f, %.2f) (%.2f %.2f, %.2f) (%.2f %.2f, %.2f)  \n\r", targetWayPoint, x,y,z, x_des1, y_des1, z_des1, x_des2, y_des2, z_des2);
+    serial_printf(&SerialA, "%d (%.3f %.3f, %.3f) (%.2f %.2f, %.2f) (%.2f %.2f, %.2f)  \n\r", targetWayPoint, x,y,z, x_des1, y_des1, z_des1, x_des2, y_des2, z_des2);
     //serial_printf(&SerialA, "%.2f (%.2f %.2f, %.2f)    (%.2f %.2f, %.2f)  (%.2f, %.2f, %.2f)\n\r", t, printtheta1motor,printtheta2motor,printtheta3motor, th1_des,th2_des,th3_des,  tau1print,tau2print,tau3print);
 }
 
