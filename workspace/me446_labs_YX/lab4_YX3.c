@@ -65,8 +65,9 @@ void implement_discrete_tf(steptraj_t *traj, float step, float *qd, float *qd_do
 
 
 
-// Your global varialbes.
+// global variables.
 
+//counter used in lab() function for determining when to do certain tasks
 long mycount = 0;
 
 #pragma DATA_SECTION(whattoprint, ".my_vars")
@@ -84,32 +85,26 @@ float theta2array[100];
 long arrayindex = 0;
 int UARTprint = 0;
 
+//variables used for printing out our motor angles
 float printtheta1motor = 0;
 float printtheta2motor = 0;
 float printtheta3motor = 0;
 
-float x = 0;
-float y = 0;
-float z = 0;
+//variables to define robot link lengths
 float pi = PI;
 float L1 = 0.254;
 float L2 = 0.254;
 float L3 = 0.254;
 
-//float invk_th1_dh = 0;
-//float invk_th2_dh = 0;
-//float invk_th3_dh = 0;
-//float invk_th1_m = 0;
-//float invk_th2_m = 0;
-//float invk_th3_m = 0;
-
+//variables used to print out each motor's torque
 float tau1print = 0;
 float tau2print = 0;
 float tau3print = 0;
 
-//Friction compensation:
-float errorBound = .05;
+//Friction compensation variables corresponding to each joint and velocity conditions
 
+//Motor 1 friction compensation where we define the coefficients for positive and negative coulomb & viscous friction coefficients
+// as well as the minimum velocity required to switch between coulomb and viscous friciton. steep1 refers to steep slope region near 0 velocity
 float minV1 = 0.1;
 float steep1 = 3.6;
 float viscousP1 = 0.1;
@@ -117,6 +112,7 @@ float coulombP1 = 0.3637;
 float viscousN1 = 0.1;
 float coulombN1 = -0.2948;
 
+//Motor 2 friction compensation where the variables have the same definition as those for motor 1
 float minV2 = 0.05;
 float steep2 = 9.;
 float viscousP2 = 0.2;
@@ -124,6 +120,7 @@ float coulombP2 = 0.2;
 float viscousN2 = 0.2;
 float coulombN2 = -0.4;
 
+//motor 3 friciton compensation
 float minV3 = 0.05;
 float steep3 = 2;
 float viscousP3 = 0.05;
@@ -131,20 +128,26 @@ float coulombP3 = 0.3;
 float viscousN3 = 0.05;
 float coulombN3 = -0.3;
 
+//variable to scale the amount of friction compensation we want affecting our joints, 1 is full friction compensation & .6 is 60% friction compensation
 float ffactor1 = 1;
 float ffactor2 = 0.6;
 float ffactor3 = 1;
 
+//variables used to calculate actual filtered velocity (Omega) with IIR filter for each joint
+
+//Omega is actual velocity we calculate, Theta is our actual motor angle
 float Theta1_old = 0;
 float Omega1_old1 = 0;
 float Omega1_old2 = 0;
 float Omega1 = 0;
 
+//variables used to calculate filtered velocity for joint 2
 float Theta2_old = 0;
 float Omega2_old1 = 0;
 float Omega2_old2 = 0;
 float Omega2 = 0;
 
+//variables used to calculate filtered velocity for joint 3
 float Theta3_old = 0;
 float Omega3_old1 = 0;
 float Omega3_old2 = 0;
@@ -168,10 +171,12 @@ float Kd_y = 25;
 float Kp_z = 500;
 float Kd_z = 25;
 
+//variables used to define how our impedance control changes due to rotations along world axes
 float thetaz = 0; // atan(0.4/0.4) = pi/4 = 0.785 is the angle to rotate about z, make PDx gains weak
 float thetax = 0;
 float thetay = 0;
 
+//variables used to define task space control
 float cosq1 = 0;
 float sinq1 = 0;
 float cosq2 = 0;
@@ -194,6 +199,7 @@ float sinx = 0;
 float cosy = 0;
 float siny = 0;
 
+//variables used to define entries to our rotation matricies for transforming impedance control axes
 float R11 = 0;
 float R12 = 0;
 float R13 = 0;
@@ -213,6 +219,7 @@ float RT31 = 0;
 float RT32 = 0;
 float RT33 = 0;
 
+//variables used to calculate actual task space coordinates, x_a, y_a, z_a
 float x_a = 0;
 float x_a_old = 0;
 float y_a = 0;
@@ -220,30 +227,37 @@ float y_a_old = 0;
 float z_a = 0;
 float z_a_old = 0;
 
+//variables used to store actual task space velocities which are found via IIR filter
 float x_ad = 0;
 float x_ad_old1 = 0;
 float x_ad_old2 = 0;
 
+//variables used to find task space y velocity
 float y_ad = 0;
 float y_ad_old1 = 0;
 float y_ad_old2 = 0;
 
+//variables used to store task space z velocity
 float z_ad = 0;
 float z_ad_old1 = 0;
 float z_ad_old2 = 0;
 
+//variables used to define our desired task space position
 float x_des = 0.25;
 float y_des = 0.25;
 float z_des = 0.4;
 
+//variables used to define our desired task space velocities
 float x_ddes = 0;
 float y_ddes = 0;
 float z_ddes = 0;
 
+//variables used to define our desired task space forces
 float Fx_des = 0;
 float Fy_des = 0;
 float Fz_des = 0;
 
+//variables used to store forces in the world frame and their values in a transformed frame, n
 float Fx_n = 0;
 float Fy_n = 0;
 float Fz_n = 0;
@@ -251,12 +265,18 @@ float Fx_w = 0;
 float Fy_w = 0;
 float Fz_w = 0;
 
+//scale factor for our commanded forces
 float K_t = 6.0;
 
+//variables used to follow a line trajectory
 
+//total time allowed for our trajectory to be completed in
 long total_time = 2000;
+
+//variable that acts as a 'percentage' to determine how much of the way we are to our desired position
 float progress = 0;
 
+//task space coordinates that define our two desired endpoints for following a line trajectory
 float x_des1 = 0;
 float y_des1 = 0.4;
 float z_des1 = 0.3;
@@ -266,20 +286,6 @@ float z_des2 = 0.3;
 
 // This function is called every 1 ms
 void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float *tau2,float *tau3, int error) {
-
-//    //Forward Kinematics
-//    x = cos(theta1motor)*(L2*cos(pi/2 - theta2motor) + L3*cos(theta3motor));
-//    y = sin(theta1motor)*(L2*cos(pi/2 - theta2motor) + L3*cos(theta3motor));
-//    z = L1 + L2*sin(pi/2 - theta2motor) - L3*sin(theta3motor);
-//
-//    invk_th1_dh = atan2(y, x);
-//    invk_th3_dh = acos(((z-L1)*(z-L1) + x*x + y*y - 2*L1*L1) / (2*L1*L1));
-//    invk_th2_dh = -atan2(z-L1, sqrt(x*x + y*y)) - invk_th3_dh/2;
-//
-//    invk_th1_m = invk_th1_dh;
-//    invk_th2_m = invk_th2_dh + pi/2;
-//    invk_th3_m = invk_th3_dh + invk_th2_m - pi/2;
-
     // Rotation zxy and its Transpose
     cosz = cos(thetaz);
     sinz = sin(thetaz);
@@ -315,6 +321,12 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     JT_32 = -0.254*sinq1*sinq3;
     JT_33 = -0.254*cosq3;
 
+    /**
+    We first calculate our current states in the task space which are our actual position and actual velocities. For finding our actual velocities we take
+    a measurement of our task space coordinates in two consequtive lab() iterations and approximate the velocity as the difference in position over the 
+    elapsed time of 1ms, as that is how often the lab() function runs. We then smooth our velocities by implementing and IIR filter.
+    */
+    
     x_a = 0.254*cosq1*(cosq3+sinq2);
     y_a = 0.254*sinq1*(cosq3+sinq2);
     z_a = 0.254*(1+cosq2-sinq3);
@@ -337,17 +349,37 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     z_ad_old2 = z_ad_old1;
     z_ad_old1 = z_ad;
 
-    //straight line
+    /**
+    After finding our current state, we are able to then follow our desired trajectory which is a line between two points. In order to do this we defined a
+    progress variable which is a multiplier that takes values between 0 and 1. When the progress variable is at 0, then our desired position will correspond
+    to our first desired point. As progress approaches the value of 1, then our desired position will become our second desired point. The function that 
+    gives us our desired position based on our progress and the two endpoints is then:
+    
+        desired_position = endpoint_1 + progress * (endpoint2 - endpoint1)
+    
+    
+    Instead of repeating this twice and flipping our desired points, we instead allow our progress variable to go above 1, but now subtract a value of 2 from
+    it since we will be starting at our second desired point, therefore 2 - progress = 2 - 1 = 1, so we start at our second point and as progress continues to
+    increase up to the value of 2, then we will have 2 - progess = 2 - 2 = 0, so we will then be at our first desired point.
+    */
+    
+    //define progress variable to range from 0 to 2 and repeat indefinately to repeat our line trajectory back and forth
     progress = (float)(mycount % (2*total_time)) / (float)total_time;
     if(progress > 1){
         progress = 2 - progress;
     }
 
+    //update our desired task space coordinates based on our current progress
     x_des = x_des1 + progress * (x_des2 - x_des1);
     y_des = y_des1 + progress * (y_des2 - y_des1);
     z_des = z_des1 + progress * (z_des2 - z_des1);
 
 
+    /**
+        After calculating our desired position based off our progress in the trajectory, we can choose to rotate our coordinate axes that define our impedance
+        control in order to make the stiffness in any direction we want be either weaker or stronger. 
+    */
+    
     //converts world errors to N frame errors
     float x_error = RT11*(x_des - x_a) + RT12*(y_des - y_a) + RT13*(z_des - z_a);
     float y_error = RT21*(x_des - x_a) + RT22*(y_des - y_a) + RT23*(z_des - z_a);
@@ -370,6 +402,13 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
      *tau2 = JT_21 * Fx_w + JT_22 * Fy_w + JT_23 * Fz_w;
      *tau3 = JT_31 * Fx_w + JT_32 * Fy_w + JT_33 * Fz_w;
 
+    /**
+        After creating our initial task space PD controller we then wanted to add friction compensation, and in order to do so we first need to calculate
+        our joint's velocities using an IIR filter. Since we know that our lab() function runs every 1ms we can approximate the velocity as the difference
+        of two consecutive motor angle measurements divided by the elapsed time of 1ms. This would be very noisy however, so we save the approximated velocity
+        and average it out with the previous two measurements in order to have a smoother velocity for each joint.
+    */
+    
     //friction compensation and calc thetadots
      Omega1 = (theta1motor - Theta1_old)/0.001;
      Omega1 = (Omega1 + Omega1_old1 + Omega1_old2)/3.0;
@@ -388,17 +427,43 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
      Theta3_old = theta3motor;
      Omega3_old2 = Omega3_old1;
      Omega3_old1 = Omega3;
+    
+    /**
+        After calculating our filtered joint velocities, Omega_i, we then go on to calculate our friction compensation for each joint. We calculate the friction 
+        compensation for joint i by first checking what region on the friction vs velocity graph it lies on. There are 3 regions we have defined:
+        
+            1) Joint velocity is greater than a minimum velocity due to the friction being nonlinear near zero
+            2) Joint velocity is less than a minimum velocity again due to the friction being nonlinear near zero
+            3) Joint velocity is in the regious between the other regions typically near zero
+        
+        Once we have determined which regious we are operating in, we are able to create a friction compensating force for joint i in the form of:
+            
+            u_friction_i = viscous_friction_coefficient * joint_angular_velocity + coulomb_friction
+       
+       if the angular velocity is outside of the operating region near zero, and if the angular velocity, Omega, is near zero then we apply a force of:
+            
+            u_friction_i = coefficient * joint_angular_velocity
+       
+       Since each of our joints can be moving at a different angular velocity, we have to find the operating region of each motor and then define 
+       the corresponding friction compensation forces, u_fric1, u_fric2, u_fric3, one by one.
+       
+       Once we have the friction compensation forces we multiply them by a scale factor incase we want to have less or more friction compensation for each
+       joint, and lastly we add this to our current control law.
+    **/
 
     float u_fric1;
     float u_fric2;
     float u_fric3;
+    
+    //define friction compensation depending on operating region for each joint
     if (Omega1 > minV1) {
-        u_fric1 = viscousP1*Omega1 + coulombP1;
-    } else if (Omega1 < -minV1) {
-        u_fric1 = viscousN1*Omega1 + coulombN1;
-    } else {
-        u_fric1 = steep1*Omega1;
+            u_fric1 = viscousP1*Omega1 + coulombP1;
+        } else if (Omega1 < -minV1) {
+            u_fric1 = viscousN1*Omega1 + coulombN1;
+        } else {
+            u_fric1 = steep1*Omega1;
     }
+    
     if (Omega2 > minV2) {
             u_fric2 = viscousP2*Omega2 + coulombP2;
         } else if (Omega2 < -minV2) {
@@ -406,14 +471,16 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
         } else {
             u_fric2 = steep2*Omega2;
         }
+    
     if (Omega3 > minV3) {
             u_fric3 = viscousP3*Omega3 + coulombP3;
         } else if (Omega3 < -minV3) {
             u_fric3 = viscousN3*Omega3 + coulombN3;
         } else {
             u_fric3 = steep3*Omega3;
-        }
+    }
 
+    //add scaled friction to current control effort
     *tau1 += u_fric1 * ffactor1;
     *tau2 += u_fric2 * ffactor2;
     *tau3 += u_fric3 * ffactor3;
