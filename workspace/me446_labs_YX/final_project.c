@@ -5,7 +5,7 @@
 #define TWOPI       6.283185307179586476925286766559
 #define HALFPI      1.5707963267948966192313216916398
 #define GRAV        9.81
-#define NUMPOINTS 18
+#define NUMPOINTS 19
 
 // These two offsets are only used in the main file user_CRSRobot.c  You just need to create them here and find the correct offset and then these offset will adjust the encoder readings
 float offset_Enc2_rad = -22.95*PI/180.0;
@@ -24,22 +24,23 @@ typedef struct point_tag {
 
 point waypoints[NUMPOINTS] = {
                               {.15, 0, .43, 0, 0, 500},
-                              {.25, 0, .51, 0, 0, 500}, //first point
-                              {.04, .37, .25, 0, 0, 500}, //slightly above hole
-                              {.03, .35, .13, 0, 1, 500}, //inside hole
-                              {.03, .35, .13, 0, 1, 500},
-                              {.03, .35, .4, 0, 1, 500}, //raise outside hole
+                              {.25, 0, .51, 0, 0, 1000}, //first point
+                              {.034, .36, .25, 0, 0, 1200}, //slightly above hole
+                              {.034, .36, .12, 0, 1, 1200}, //inside hole
+                              {.034, .36, .12, 0, 1, 500},
+                              {.034, .36, .4, 0, 1, 500}, //raise outside hole
                               {.19, .12, .36, 0, 0, 500}, //avoid obstacle
-                              {.399, .090, .207, 0, 1, 350},//zigzag entrance
-                              {.425, .036, .207,0, 1, 350},//first zigzag turn
-                              {.404, .030, .207,0, 1, 350},
-                              {.338, .037, .207,0, 1, 350}, //second zigzag turn
-                              {.330, .017, .207,0, 1, 750},
-                              {.406, -.090, .207,0, 1, 500}, //zigzag exit
-                              {.323, -.037, .438, 0, 0, 1000},
-                              {.252, .179, .322, 0, 2, 1000}, //above egg
-                              {.252, .179, .322, 0, 2, 5000},
-                              {.252, .179, .322, 0, 0, 500},
+                              {.399, .090, .207, 0, 1, 250},//zigzag entrance
+                              {.425, .036, .207,0, 1, 250},//first zigzag turn
+                              {.404, .030, .207,0, 1, 250},
+                              {.338, .037, .207,0, 1, 300}, //second zigzag turn
+                              {.330, .017, .207,0, 1, 300},
+                              {.358, -.015, .207, 0, 1, 300},
+                              {.406, -.090, .207,0, 1, 350}, //zigzag exit
+                              {.323, -.037, .32, 0, 0, 350},
+                              {.252, .179, .29, 0, 2, 200}, //above egg
+                              {.252, .179, .32, 0, 2, 10000}, //.322
+                              {.252, .179, .32, 0, 0, 500},
                               {.254, 0, .508, 0 ,0, 500} //end point
 
 };
@@ -301,7 +302,7 @@ float z_des2 = 0.3;
 
 int targetWayPoint = 0;
 
-float speed_scale = .75;
+float speed_scale = .5;
 
 // This function is called every 1 ms
 void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float *tau2,float *tau3, int error) {
@@ -416,11 +417,12 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
         if (waypoints[targetWayPoint].mode == 2) {
             Fz_des = 0;
-            Kp_z = 38;
-            Kd_z = 25;
+            //Kp_z = 33; //when speedscale = 1.5
+            Kp_z = 31; //speedscale = .75
+            Kd_z = 15;
         } else if (waypoints[targetWayPoint].mode == 1) {
-            Kp_x = 150;
-            Kp_y = 150;
+            Kp_x = 200;
+            Kp_y = 200;
             Kd_x = 15;
             Kd_y = 15;
         } else{
