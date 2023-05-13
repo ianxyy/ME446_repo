@@ -22,6 +22,10 @@ typedef struct point_tag {
     int time;
 } point;
 
+/** Defining all of the waypoints in our obstacle course trajectory. Each waypoint includes (x,y,z) coordinates
+as well as an angle we can rotate about to change impedance in different directions, a mode which defines what directions
+we want high or low impedance, and a time in miliseconds that we give our robot to get from one point to the next.
+*/
 point waypoints[NUMPOINTS] = {
                               {.15, 0, .43, 0, 0, 500},
                               {.25, 0, .51, 0, 0, 1000}, //first point
@@ -127,6 +131,7 @@ float L1 = 0.254;
 float L2 = 0.254;
 float L3 = 0.254;
 
+//variables for inverse kinematics
 float invk_th1_dh = 0;
 float invk_th2_dh = 0;
 float invk_th3_dh = 0;
@@ -162,10 +167,12 @@ float coulombP3 = 0.3;
 float viscousN3 = 0.05;
 float coulombN3 = -0.3;
 
+//friction compensation scale factor
 float ffactor1 = 1;
 float ffactor2 = 1;
 float ffactor3 = 1;
 
+//variables for calculating joint angular velocity using IIR filter
 float Theta1_old = 0;
 float Omega1_old1 = 0;
 float Omega1_old2 = 0;
@@ -199,6 +206,7 @@ float Kd_y = 25;
 float Kp_z = 500;
 float Kd_z = 25;
 
+//variables used for impedance control
 float thetaz = 0; // atan(0.4/0.4) = pi/4 = 0.785 is the angle to rotate about z, make PDx gains weak
 float thetax = 0;
 float thetay = 0;
@@ -244,6 +252,9 @@ float RT31 = 0;
 float RT32 = 0;
 float RT33 = 0;
 
+//variables used for task space PD control
+
+//task space position variables
 float x_a = 0;
 float x_a_old = 0;
 float y_a = 0;
@@ -251,6 +262,7 @@ float y_a_old = 0;
 float z_a = 0;
 float z_a_old = 0;
 
+//task space velocity
 float x_ad = 0;
 float x_ad_old1 = 0;
 float x_ad_old2 = 0;
@@ -263,14 +275,17 @@ float z_ad = 0;
 float z_ad_old1 = 0;
 float z_ad_old2 = 0;
 
+//our desired task space position
 float x_des = 0.25;
 float y_des = 0.25;
 float z_des = 0.4;
 
+//desired task space velocity
 float x_ddes = 0;
 float y_ddes = 0;
 float z_ddes = 0;
 
+//desired force applied at end effector (Newtons)
 float Fx_des = 0;
 float Fy_des = 0;
 float Fz_des = 0;
@@ -280,6 +295,7 @@ float Kp_z_input = 0;
 float Kd_z_input = 0;
 float Fz_des_input = 0;
 */
+//variables used to transform forces into different frames of references
 float Fx_n = 0;
 float Fy_n = 0;
 float Fz_n = 0;
@@ -287,12 +303,14 @@ float Fx_w = 0;
 float Fy_w = 0;
 float Fz_w = 0;
 
+//scale factor for force applied at end effector
 float K_t = 6.0;
 
-
+//variable used to determine how much time robot takes to get from one waypoint to the next (ms)
 long total_time = 1500;
 float progress = 0;
 
+//desired endpoints to follow a line trajectory
 float x_des1 = 0;
 float y_des1 = 0.4;
 float z_des1 = 0.3;
@@ -300,8 +318,10 @@ float x_des2 = 0.4;
 float y_des2 = 0.0;
 float z_des2 = 0.3;
 
+//counter to keep track of current waypoint
 int targetWayPoint = 0;
 
+//variable to scale speed of all waypoints in our trajectory
 float speed_scale = .5;
 
 // This function is called every 1 ms
@@ -312,6 +332,7 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     y = sin(theta1motor)*(L2*cos(pi/2 - theta2motor) + L3*cos(theta3motor));
     z = L1 + L2*sin(pi/2 - theta2motor) - L3*sin(theta3motor);
 
+    //inverse kinematics
     invk_th1_dh = atan2(y, x);
     invk_th3_dh = acos(((z-L1)*(z-L1) + x*x + y*y - 2*L1*L1) / (2*L1*L1));
     invk_th2_dh = -atan2(z-L1, sqrt(x*x + y*y)) - invk_th3_dh/2;
@@ -356,11 +377,12 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     JT_32 = -0.254*sinq1*sinq3;
     JT_33 = -0.254*cosq3;
 
-    //actual robot position and velocities
+    //actual robot position
     x_a = 0.254*cosq1*(cosq3+sinq2);
     y_a = 0.254*sinq1*(cosq3+sinq2);
     z_a = 0.254*(1+cosq2-sinq3);
 
+    //actual robot velocity using IIR filter
     x_ad = (x_a - x_a_old)/0.001;
     x_ad = (x_ad + x_ad_old1 + x_ad_old2)/3.0;
     x_a_old = x_a;
@@ -381,11 +403,12 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
 
-    //straight line
+    //determines time allowed for robot to go from current point to next waypoint
     total_time = waypoints[targetWayPoint].time;
-
     total_time = total_time * speed_scale;
 
+    //variable that allows our robot to begin at one point and slowly 'progress' to the next waypoint
+    // takes values between [0, 1]
     progress = (float)(mycount % (total_time)) / (float)total_time;
 
     //rboot starting point
@@ -393,39 +416,44 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     y_des1 = waypoints[targetWayPoint].yb;
     z_des1 = waypoints[targetWayPoint].zb;
 
+    //next robot waypoint
     x_des2 = waypoints[targetWayPoint + 1].xb;
     y_des2 = waypoints[targetWayPoint + 1].yb;
     z_des2 = waypoints[targetWayPoint + 1].zb;
 
+    //when progress is reset -> endpoint reached move on to next target waypoint
     if(progress == 0){
         //progress = 0 ;
         targetWayPoint += 1;
     }
 
     if (targetWayPoint >= NUMPOINTS) {
-        //targetWayPoint = NUMPOINTS-1;
-        //once all waypoints are reached
+        //once all waypoints are reached set desired posiiton to end position
         x_des = .254;
         y_des = 0;
         z_des = .508;
     } else {
         if (targetWayPoint == NUMPOINTS - 1) {
+            //final waypoint
             x_des2 =   .254;
             y_des2 = 0;
             z_des2 = .508;
         }
-
+        
+        //if waypoint mode == 2 we want it to apply a force onto the egg so we modify our Z-impedance gain
         if (waypoints[targetWayPoint].mode == 2) {
             Fz_des = 0;
-            //Kp_z = 33; //when speedscale = 1.5
             Kp_z = 31; //speedscale = .75
             Kd_z = 15;
         } else if (waypoints[targetWayPoint].mode == 1) {
+            //if waypoint mode is 1 we want robot more stiff in x and y plane
+            //this is so that it is better guided through our zigzag trajectory
             Kp_x = 200;
             Kp_y = 200;
             Kd_x = 15;
             Kd_y = 15;
         } else{
+            //default parameters for impedances in all other cases
             Fz_des = 0;
             Kp_z = 500;
             Kd_z = 25;
@@ -434,6 +462,8 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
             Kd_x = 25;
             Kd_y = 25;
         }
+        //our current desired position begins at our start point (x_des1) and as progress approaches 1, then our current
+        //desired position will become x_des2. When progress is 0, then our current desired position is x_des1
         x_des = x_des1 + progress * (x_des2 - x_des1);
         y_des = y_des1 + progress * (y_des2 - y_des1);
         z_des = z_des1 + progress * (z_des2 - z_des1);
@@ -467,7 +497,7 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
 
-    //friction compensation and calc thetadots
+    //friction compensation and calc angular velocities using IIR filter
      Omega1 = (theta1motor - Theta1_old)/0.001;
      Omega1 = (Omega1 + Omega1_old1 + Omega1_old2)/3.0;
      Theta1_old = theta1motor;
@@ -486,6 +516,7 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
      Omega3_old2 = Omega3_old1;
      Omega3_old1 = Omega3;
 
+    //friction compensation depending on motor operating regime
     float u_fric1;
     float u_fric2;
     float u_fric3;
@@ -511,6 +542,7 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
             u_fric3 = steep3*Omega3;
         }
 
+    //adding friction compensation times its scale factor (default 1) to our current task space PD control
     *tau1 += u_fric1 * ffactor1;
     *tau2 += u_fric2 * ffactor2;
     *tau3 += u_fric3 * ffactor3;
